@@ -10,12 +10,15 @@ class BirdeyeProvider(DataProvider):
         self.base_url = "https://public-api.birdeye.so"
         self.headers = {
             "X-API-KEY": Config.BIRDEYE_API_KEY,
+            # 指定链，否则部分接口会返回 400
+            "x-chain": Config.CHAIN,
             "accept": "application/json"
         }
         self.semaphore = asyncio.Semaphore(Config.CONCURRENCY)
         
-    async def get_trending_tokens(self, limit=100):
+    async def get_trending_tokens(self, limit=20):
         url = f"{self.base_url}/defi/token_trending"
+        limit = max(1, min(int(limit), 20))  # API 限制 1-20
         params = {
             "sort_by": "rank",
             "sort_type": "asc",
@@ -42,7 +45,11 @@ class BirdeyeProvider(DataProvider):
                             })
                         return results
                     else:
-                        logger.error(f"Birdeye Trending Error: {resp.status}")
+                        try:
+                            body = await resp.text()
+                        except Exception:
+                            body = "<no body>"
+                        logger.error(f"Birdeye Trending Error: {resp.status} | body={body}")
                         return []
             except Exception as e:
                 logger.error(f"Birdeye Trending Exception: {e}")
