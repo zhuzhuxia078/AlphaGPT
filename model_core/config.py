@@ -1,5 +1,9 @@
 import torch
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from project .env
+load_dotenv()
 
 class ModelConfig:
     DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
