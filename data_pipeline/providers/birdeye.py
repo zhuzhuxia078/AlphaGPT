@@ -56,46 +56,56 @@ class BirdeyeProvider(DataProvider):
                 return []
 
     async def get_token_history(self, session, address, days=Config.HISTORY_DAYS):
+        # Birdeye单次返回约 1000 条，长时间段需要分页，否则只能拿到早期数据。
+        seconds_per_bar = 60 if Config.TIMEFRAME == "1m" else 900  # 15min=900s
+        chunk_bars = 900  # 每段最多抓 900 根，防止超过上限
+        chunk_seconds = seconds_per_bar * chunk_bars
+
         time_to = int(datetime.now().timestamp())
         time_from = int((datetime.now() - timedelta(days=days)).timestamp())
-        
-        url = f"{self.base_url}/defi/ohlcv"
-        params = {
-            "address": address,
-            "type": Config.TIMEFRAME,
-            "time_from": time_from,
-            "time_to": time_to
-        }
 
-        async with self.semaphore:
-            try:
-                async with session.get(url, params=params) as resp:
-                    if resp.status == 200:
-                        data = await resp.json()
-                        items = data.get('data', {}).get('items', [])
-                        if not items: return []
-                        
-                        formatted = []
-                        for item in items:
-                            formatted.append((
-                                datetime.fromtimestamp(item['unixTime']), # time
-                                address,                                  # address
-                                float(item['o']),                         # open
-                                float(item['h']),                         # high
-                                float(item['l']),                         # low
-                                float(item['c']),                         # close
-                                float(item['v']),                         # volume
-                                0.0,                                      # liquidity
-                                0.0,                                      # fdv
-                                'birdeye'                                 # source
-                            ))
-                        return formatted
-                    elif resp.status == 429:
-                        logger.warning(f"Birdeye 429 for {address}, retrying...")
-                        await asyncio.sleep(2)
-                        return await self.get_token_history(session, address, days)
-                    else:
-                        return []
-            except Exception as e:
-                logger.error(f"Birdeye Fetch Error {address}: {e}")
-                return []
+        url = f"{self.base_url}/defi/ohlcv"
+        current_from = time_from
+        all_rows = []
+
+        while current_from < time_to:
+            current_to = min(time_to, current_from + chunk_seconds)
+            params = {
+                "address": address,
+                "type": Config.TIMEFRAME,
+                "time_from": current_from,
+                "time_to": current_to
+            }
+
+            async with self.semaphore:
+                try:
+                    async with session.get(url, params=params) as resp:
+                        if resp.status == 200:
+                            data = await resp.json()
+                            items = data.get('data', {}).get('items', [])
+                            if items:
+                                for item in items:
+                                    all_rows.append((
+                                        datetime.fromtimestamp(item['unixTime']),
+                                        address,
+                                        float(item['o']),
+                                        float(item['h']),
+                                        float(item['l']),
+                                        float(item['c']),
+                                        float(item['v']),
+                                        0.0,
+                                        0.0,
+                                        'birdeye'
+                                    ))
+                        elif resp.status == 429:
+                            logger.warning(f"Birdeye 429 for {address}, window {current_from}->{current_to}, retrying...")
+                            await asyncio.sleep(2)
+                            continue  # 重试同一窗口
+                        else:
+                            logger.error(f"Birdeye OHLCV Error {resp.status} for {address} window {current_from}->{current_to}")
+                except Exception as e:
+                    logger.error(f"Birdeye Fetch Error {address}: {e}")
+
+            current_from = current_to  # 处理下一段
+
+        return all_rows
