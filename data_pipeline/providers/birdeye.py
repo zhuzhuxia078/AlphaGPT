@@ -16,7 +16,7 @@ class BirdeyeProvider(DataProvider):
         }
         self.semaphore = asyncio.Semaphore(Config.CONCURRENCY)
 
-    async def get_trending_tokens(self, limit=100):
+    async def get_trending_tokens(self, limit=20):
         url = f"{self.base_url}/defi/token_trending"
         params = {
             "sort_by": "rank",
