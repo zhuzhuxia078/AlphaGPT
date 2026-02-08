@@ -18,6 +18,7 @@ class BirdeyeProvider(DataProvider):
 
     async def get_trending_tokens(self, limit=20):
         url = f"{self.base_url}/defi/token_trending"
+        limit = max(1, min(int(limit), 20)) 
         params = {
             "sort_by": "rank",
             "sort_type": "asc",
