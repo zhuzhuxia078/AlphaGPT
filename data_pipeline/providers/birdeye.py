@@ -15,24 +15,23 @@ class BirdeyeProvider(DataProvider):
             "accept": "application/json"
         }
         self.semaphore = asyncio.Semaphore(Config.CONCURRENCY)
-        
-    async def get_trending_tokens(self, limit=20):
+
+    async def get_trending_tokens(self, limit=100):
         url = f"{self.base_url}/defi/token_trending"
-        limit = max(1, min(int(limit), 20))  # API 限制 1-20
         params = {
             "sort_by": "rank",
             "sort_type": "asc",
             "offset": "0",
             "limit": str(limit)
         }
-        
+
         async with aiohttp.ClientSession(headers=self.headers) as session:
             try:
                 async with session.get(url, params=params) as resp:
                     if resp.status == 200:
                         data = await resp.json()
                         raw_list = data.get('data', {}).get('tokens', [])
-                        
+
                         results = []
                         for t in raw_list:
                             results.append({

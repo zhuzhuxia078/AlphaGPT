@@ -12,11 +12,11 @@ class Config:
     DB_DSN = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
     CHAIN = "solana"
     TIMEFRAME = "1m" # 也支持 15min
-    MIN_LIQUIDITY_USD = 500000.0  
-    MIN_FDV = 10000000.0            
-    MAX_FDV = float('inf') 
+    MIN_LIQUIDITY_USD = 500000.0
+    MIN_FDV = 10000000.0
+    MAX_FDV = float('inf')
     BIRDEYE_API_KEY = os.getenv("BIRDEYE_API_KEY", "")
     BIRDEYE_IS_PAID = True
     USE_DEXSCREENER = False
-    CONCURRENCY = 20
-    HISTORY_DAYS = 7
+    CONCURRENCY = 3
+    HISTORY_DAYS = 100

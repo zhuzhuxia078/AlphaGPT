@@ -67,14 +67,17 @@ class DBManager:
         if not records: return
         async with self.pool.acquire() as conn:
             try:
-                await conn.copy_records_to_table(
-                    'ohlcv',
-                    records=records,
-                    columns=['time', 'address', 'open', 'high', 'low', 'close', 
-                             'volume', 'liquidity', 'fdv', 'source'],
-                    timeout=60
-                )
-            except asyncpg.UniqueViolationError:
-                pass # 忽略重复
+                before = await conn.fetchval("SELECT COUNT(*) FROM ohlcv;")
+                stmt = """
+                    INSERT INTO ohlcv
+                    (time, address, open, high, low, close, volume, liquidity, fdv, source)
+                    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+                    ON CONFLICT (time, address) DO NOTHING;
+                """
+                await conn.executemany(stmt, records)
+                after = await conn.fetchval("SELECT COUNT(*) FROM ohlcv;")
+                inserted = after - before
+                dedup = len(records) - inserted
+                logger.info(f"Batch request {len(records)}, inserted {inserted}, dedup {dedup}")
             except Exception as e:
                 logger.error(f"Batch insert error: {e}")
