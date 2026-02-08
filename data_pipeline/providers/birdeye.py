@@ -12,7 +12,9 @@ class BirdeyeProvider(DataProvider):
             "X-API-KEY": Config.BIRDEYE_API_KEY,
             # 指定链，否则部分接口会返回 400
             "x-chain": Config.CHAIN,
-            "accept": "application/json"
+            "accept": "application/json",
+            # 强制非压缩，避免 br content-encoding 解码错误
+            "accept-encoding": "identity"
         }
         self.semaphore = asyncio.Semaphore(Config.CONCURRENCY)
 
