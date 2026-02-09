@@ -20,6 +20,13 @@ class AlphaEngine:
             lord_num_iterations: Number of Newton-Schulz iterations per step
         """
         self.loader = CryptoDataLoader()
+        # Log where the data is being loaded from (supabase pooler vs local DB)
+        print(
+            "[Data Source] host=", ModelConfig.DB_HOST,
+            "port=", ModelConfig.DB_PORT,
+            "db=", ModelConfig.DB_NAME,
+            sep=""
+        )
         self.loader.load_data()
         
         self.model = AlphaGPT().to(ModelConfig.DEVICE)
