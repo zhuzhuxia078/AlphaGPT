@@ -1,4 +1,5 @@
 import os
+from urllib.parse import quote_plus
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -7,9 +8,12 @@ class Config:
     DB_USER = os.getenv("DB_USER", "postgres")
     DB_PASSWORD = os.getenv("DB_PASSWORD", "password")
     DB_HOST = os.getenv("DB_HOST", "localhost")
-    DB_PORT = os.getenv("DB_PORT", "5432")
+    DB_PORT = os.getenv("DB_PORT", "5432")  # Supabase pooler uses 6543
     DB_NAME = os.getenv("DB_NAME", "crypto_quant")
-    DB_DSN = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+    DB_SSLMODE = os.getenv("DB_SSLMODE", "require")
+    _ssl_suffix = f"?sslmode={DB_SSLMODE}" if DB_SSLMODE else ""
+    _safe_pwd = quote_plus(DB_PASSWORD)
+    DB_DSN = f"postgresql://{DB_USER}:{_safe_pwd}@{DB_HOST}:{DB_PORT}/{DB_NAME}{_ssl_suffix}"
     CHAIN = "solana"
     TIMEFRAME = "1m" # 也支持 15min
     MIN_LIQUIDITY_USD = 500000.0
@@ -19,4 +23,4 @@ class Config:
     BIRDEYE_IS_PAID = True
     USE_DEXSCREENER = False
     CONCURRENCY = 3
-    HISTORY_DAYS = 100
+    HISTORY_DAYS = 120
