@@ -70,6 +70,7 @@ class AlphaEngine:
             print(f"   Target keywords: ['q_proj', 'k_proj', 'attention', 'qk_norm']")
         
         pbar = tqdm(range(ModelConfig.TRAIN_STEPS))
+        stats = {"invalid": 0, "lowvar": 0, "valid": 0}
         
         for step in pbar:
             bs = ModelConfig.BATCH_SIZE
@@ -98,14 +99,17 @@ class AlphaEngine:
                 
                 if res is None:
                     rewards[i] = -5.0
+                    stats["invalid"] += 1
                     continue
                 
                 if res.std() < 1e-4:
                     rewards[i] = -2.0
+                    stats["lowvar"] += 1
                     continue
                 
                 score, ret_val = self.bt.evaluate(res, self.loader.raw_data_cache, self.loader.target_ret)
                 rewards[i] = score
+                stats["valid"] += 1
                 
                 if score.item() > self.best_score:
                     self.best_score = score.item()
@@ -138,6 +142,10 @@ class AlphaEngine:
                 stable_rank = self.rank_monitor.compute()
                 postfix_dict['Rank'] = f"{stable_rank:.2f}"
                 self.training_history['stable_rank'].append(stable_rank)
+
+            if step % 50 == 0 and step > 0:
+                tqdm.write(f"Step {step}: invalid={stats['invalid']}, lowvar={stats['lowvar']}, valid={stats['valid']}")
+                stats = {"invalid": 0, "lowvar": 0, "valid": 0}
             
             self.training_history['step'].append(step)
             self.training_history['avg_reward'].append(avg_reward)
