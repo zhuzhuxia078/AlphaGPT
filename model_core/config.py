@@ -28,3 +28,5 @@ class ModelConfig:
     MIN_LIQUIDITY = 5000.0 # 低于此流动性视为归零/无法交易
     BASE_FEE = 0.005 # 基础费率 0.5% (Swap + Gas + Jito Tip)
     INPUT_DIM = 6
+    # 仅训练最近 N 天数据；0 表示不限制
+    LOOKBACK_DAYS = int(os.getenv("LOOKBACK_DAYS", "0"))
